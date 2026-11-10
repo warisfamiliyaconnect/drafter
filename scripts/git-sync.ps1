@@ -62,23 +62,29 @@ try {
     $targetBranch = if ($Branch) { $Branch } else { $currentBranch }
     Write-Step "Operating on branch '$targetBranch' (current: '$currentBranch')"
 
-    # 3. Check for Large Files (>25MB) in working tree staged/untracked
+    # 3. Check for Unignored Large Files (>25MB) or Staged Large Files
     Write-Step "Running security & large-file pre-flight checks..."
     $largeFiles = Get-ChildItem -Path . -Recurse -File -ErrorAction SilentlyContinue |
         Where-Object { 
             $_.Length -gt 25MB -and 
             $_.FullName -notmatch "node_modules|\.git|venv|drafterenv|\.next" 
+        } | Where-Object {
+            # Only flag if file is NOT ignored by git
+            $rel = Resolve-Path -Relative $_.FullName
+            git check-ignore -q $rel
+            $LASTEXITCODE -ne 0
         }
 
     if ($largeFiles) {
-        Write-Warn "Found large file(s) (>25MB) in workspace that should not be committed to GitHub:"
+        Write-Err "Found unignored large file(s) (>25MB) in workspace that would fail GitHub push:"
         foreach ($f in $largeFiles) {
             $mb = [math]::Round($f.Length / 1MB, 2)
-            Write-Host "   - $($f.FullName) ($mb MB)" -ForegroundColor Yellow
+            Write-Host "   - $($f.FullName) ($mb MB)" -ForegroundColor Red
         }
-        Write-Host "Ensure these are covered by .gitignore before proceeding." -ForegroundColor DarkYellow
+        Write-Err "Add these files to .gitignore or Git LFS before pushing."
+        exit 1
     } else {
-        Write-Success "No untracked large files detected in active workspace."
+        Write-Success "No unignored large files or exposed weights detected."
     }
 
     # 4. Run Sanity Checks if requested
