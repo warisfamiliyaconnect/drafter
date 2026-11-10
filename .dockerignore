@@ -1,0 +1,27 @@
+# Dependency directories
+node_modules
+frontend/node_modules
+venv
+drafterenv
+__pycache__
+*.pyc
+
+# Next.js build artifacts & cache
+.next
+frontend/.next
+frontend/out
+frontend/build
+
+# Heavy AI model binaries (these are mounted via Docker volumes, not baked into the image)
+ai_engine/models/**/*.gguf
+ai_engine/models/qwen3-8b/*.gguf
+models
+
+# Version control & environment
+.git
+.gitignore
+.env
+*.log
+
+# Test & system caches
+.pytest_cache

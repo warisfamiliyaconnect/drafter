@@ -1,0 +1,37 @@
+# Set default behavior to automatically normalize line endings
+* text=auto eol=lf
+
+# Explicitly declare text files you want to always be normalized and converted
+*.py text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Denote all binary files explicitly so Git does not attempt to modify line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.zip binary
+*.tar.gz binary
+*.gguf binary
+*.bin binary
+*.safetensors binary

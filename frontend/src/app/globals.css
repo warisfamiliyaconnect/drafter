@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --page-bg: #f3f4f6;
+  --sheet-bg: #ffffff;
+  --border-color: #e5e7eb;
+}
+
+body {
+  background-color: var(--page-bg);
+}
+
+.prose-canvas {
+  background-color: var(--sheet-bg);
+  width: 210mm;
+  min-height: 297mm;
+  padding: 25.4mm;
+  margin: 2rem auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--border-color);
+  outline: none;
+}
+
+.ai-pending {
+  color: #9ca3af;
+  font-style: italic;
+  transition: color 0.8s ease, font-style 0.8s ease;
+  opacity: 0.7;
+}
+
+.ai-final {
+  color: #111827;
+  font-style: normal;
+  opacity: 1;
+  transition: color 0.8s ease, font-style 0.8s ease;
+}
+
+/* TipTap Table Basic Styling */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.ProseMirror td, .ProseMirror th {
+  min-width: 1em;
+  border: 2px solid #ced4da;
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}

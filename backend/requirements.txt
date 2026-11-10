@@ -1,0 +1,9 @@
+langgraph
+python-docx
+mammoth
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+sqlalchemy
+aiosqlite

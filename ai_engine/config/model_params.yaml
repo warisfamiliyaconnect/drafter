@@ -1,0 +1,19 @@
+# Model Inference Parameters
+# These settings control the "creativity" and "strictness" of the Drafter AI
+
+default_model:
+  path: "ai_engine/models/model.gguf"
+  context_window: 8192
+  temperature: 0.7
+  top_p: 0.9
+  repeat_penalty: 1.1
+
+architect_mode:
+  temperature: 0.4 # Lower temp for more structural consistency
+  top_p: 0.8
+
+drafter_mode:
+  temperature: 0.8 # Higher temp for better prose and flow
+
+critic_mode:
+  temperature: 0.2 # Very low temp for rigid, factual auditing

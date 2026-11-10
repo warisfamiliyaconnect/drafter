@@ -1,0 +1,40 @@
+name: "🐛 Bug Report"
+description: File a report to help us improve Drafter
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Start backend with '...'
+        2. Open frontend on 'http://localhost:3000'
+        3. Click on '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment & Logs
+      description: OS version, browser, Python/Node versions, and relevant logs.

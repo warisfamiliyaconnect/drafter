@@ -1,0 +1,19 @@
+# Core LLM inference library
+llama-cpp-python>=0.2.0
+
+# Configuration and Validation
+pydantic>=2.8.2
+pydantic-settings>=2.4.0
+
+# Web API framework (optional)
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# gRPC support (optional)
+grpcio>=1.66.0
+
+# Structured logging
+loguru>=0.7.2
+
+# Document Export
+python-docx>=1.2.0
