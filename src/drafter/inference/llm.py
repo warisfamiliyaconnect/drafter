@@ -2,8 +2,24 @@
 Inference layer for LLM communication.
 Provides a standardized interface for interacting with local or remote models.
 """
-import llama_cpp
-from llama_cpp import Llama
+try:
+    import llama_cpp
+    from llama_cpp import Llama
+    HAS_LLAMA_CPP = True
+except ImportError:
+    class _LlamaFallback:
+        def __init__(self, *args, **kwargs):
+            raise ImportError("llama_cpp is not installed")
+
+    class _MockLlamaModule:
+        Llama = _LlamaFallback
+        GGML_TYPE_Q8_0 = 8
+
+    import sys
+    llama_cpp = _MockLlamaModule()
+    sys.modules["llama_cpp"] = llama_cpp
+    Llama = _LlamaFallback
+    HAS_LLAMA_CPP = False
 from typing import List, Dict, Any, Optional, Union
 from drafter.config import settings
 from drafter.utils.logging import logger

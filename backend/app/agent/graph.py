@@ -3,9 +3,9 @@ from typing import Annotated, List, Dict, Optional, TypedDict
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
-from app.agent.state import DocumentGraphState
-from app.agent.prompts import SYSTEM_PROMPTS
-from app.services.inference import inference_engine
+from .state import DocumentGraphState
+from .prompts import SYSTEM_PROMPTS
+from ..services.inference import inference_engine
 
 # --- Node Implementations ---
 

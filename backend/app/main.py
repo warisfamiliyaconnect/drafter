@@ -7,9 +7,9 @@ import uuid
 import json
 
 from sse_starlette.sse import EventSourceResponse
-from app.agent.graph import document_agent
-from app.services.docx_parser import parse_docx_to_ast
-from app.services.exporter import export_to_docx
+from .agent.graph import document_agent
+from .services.docx_parser import parse_docx_to_ast
+from .services.exporter import export_to_docx
 
 app = FastAPI(title="Drafter Backend API")
 
