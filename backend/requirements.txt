@@ -7,3 +7,6 @@ pydantic
 pydantic-settings
 sqlalchemy
 aiosqlite
+sse-starlette
+pyyaml
+llama-cpp-python>=0.2.0
