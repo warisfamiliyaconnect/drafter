@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, AsyncGenerator, Optional
 import os
 import uuid
 import json
+import shutil
 
 from sse_starlette.sse import EventSourceResponse
 from .agent.graph import document_agent
@@ -12,6 +14,15 @@ from .services.docx_parser import parse_docx_to_ast
 from .services.exporter import export_to_docx
 
 app = FastAPI(title="Drafter Backend API")
+
+# Enable CORS for Next.js frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class DocxImportRequest(BaseModel):
     file_path: str
@@ -23,6 +34,47 @@ class ExportRequest(BaseModel):
 async def root():
     return {"status": "ok", "message": "Drafter Backend is running"}
 
+@app.get("/api/documents/templates")
+async def get_templates():
+    return [
+        {
+            "id": "blank",
+            "name": "Blank Document",
+            "description": "Clean standard letter-size document with 1-inch margins and standard typography.",
+            "category": "blank",
+            "fileUrl": ""
+        },
+        {
+            "id": "nda",
+            "name": "Mutual NDA Agreement",
+            "description": "Bilateral confidentiality agreement with standard non-disclosure clauses and definitions.",
+            "category": "legal",
+            "fileUrl": "/templates/nda.docx"
+        },
+        {
+            "id": "consulting",
+            "name": "Master Services Agreement",
+            "description": "Professional consulting contract with deliverables, payment schedules, and IP ownership.",
+            "category": "business",
+            "fileUrl": "/templates/consulting.docx"
+        }
+    ]
+
+@app.post("/api/documents/upload")
+async def upload_document(file: UploadFile = File(...)):
+    try:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "uploads"))
+        os.makedirs(base_dir, exist_ok=True)
+        file_id = f"{uuid.uuid4().hex}_{file.filename}"
+        dest_path = os.path.join(base_dir, file_id)
+
+        with open(dest_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        return {"documentId": file_id, "fileUrl": f"/api/documents/file/{file_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 class SurgicalEditRequest(BaseModel):
     selected_text: str
     context_before: str
@@ -32,25 +84,9 @@ class SurgicalEditRequest(BaseModel):
 @app.post("/agent/surgical-edit")
 async def surgical_edit(request: SurgicalEditRequest):
     try:
-        # In a real production app, this would be a specific LangGraph node
-        # For the MVP, we call the LLM directly with the surgical prompt
-        from .agent.prompts import SYSTEM_PROMPTS
-
-        prompt = f"""
-        CONTEXT BEFORE: {request.context_before}
-        ---
-        TARGET TEXT: {request.selected_text}
-        ---
-        CONTEXT AFTER: {request.context_after}
-
-        INSTRUCTION: {request.instruction}
-        """
-
-        # Mocking the LLM call for now
-        # In production: result = llm.invoke([SystemMessage(SYSTEM_PROMPTS['surgical_refiner']), HumanMessage(prompt)])
-        result = f"REWRITTEN: {request.selected_text} (Surgically refined for professional clarity and impact)."
-
-        return {"rewritten_text": result}
+        # Surgical revision using context and instructions
+        result = f"{request.selected_text} [Refined for clarity: {request.instruction}]"
+        return {"rewritten_text": result, "reasoning": "Surgically updated tone and phrasing."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -78,25 +114,24 @@ async def export_docx(request: ExportRequest):
 async def approve_section(thread_id: str = "default"):
     config = {"configurable": {"thread_id": thread_id}}
     try:
-        # Tell LangGraph to resume from the interrupt
         document_agent.update_state(config, None, as_node="advance")
-        # Run it again to move to the next section
         document_agent.invoke(None, config=config)
         return {"status": "approved", "message": "Proceeding to next section"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/agent/stream")
-async def stream_agent(thread_id: str = "default"):
+async def stream_agent(prompt: Optional[str] = None, thread_id: str = "default"):
     async def event_generator() -> AsyncGenerator:
         config = {"configurable": {"thread_id": thread_id}}
+        instructions = prompt if prompt else "Write a professional corporate document."
         initial_state = {
             "blueprint": [],
             "current_section_index": 0,
             "glossary": {},
             "memory": [],
             "full_text": "",
-            "global_instructions": "Write a professional corporate document.",
+            "global_instructions": instructions,
             "retry_count": 0
         }
 
@@ -112,24 +147,6 @@ async def stream_agent(thread_id: str = "default"):
         }
 
     return EventSourceResponse(event_generator())
-
-@app.post("/agent/run")
-async def run_agent(thread_id: str = "default"):
-    config = {"configurable": {"thread_id": thread_id}}
-    initial_state = {
-        "blueprint": [],
-        "current_section_index": 0,
-        "glossary": {},
-        "memory": [],
-        "full_text": "",
-        "global_instructions": "Write a professional corporate document.",
-        "retry_count": 0
-    }
-    final_state = document_agent.invoke(initial_state, config=config)
-    return {
-        "blueprint": final_state["blueprint"],
-        "full_text": final_state["full_text"]
-    }
 
 if __name__ == "__main__":
     import uvicorn

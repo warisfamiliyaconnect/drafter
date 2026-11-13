@@ -1,15 +1,9 @@
-'use client'
+import { EditorWorkspace } from '@/features/editor/components/editor-workspace'
 
-import dynamic from 'next/dynamic'
-
-const DrafterEditor = dynamic(() => import('@/components/editor/Editor'), {
-  ssr: false,
-})
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <main>
-      <DrafterEditor />
+    <main className="h-screen w-screen overflow-hidden">
+      <EditorWorkspace />
     </main>
   )
 }

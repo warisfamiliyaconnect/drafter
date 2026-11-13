@@ -1,56 +1,46 @@
+@import "../styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --page-bg: #f3f4f6;
-  --sheet-bg: #ffffff;
-  --border-color: #e5e7eb;
-}
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap');
 
 body {
-  background-color: var(--page-bg);
-}
-
-.prose-canvas {
-  background-color: var(--sheet-bg);
-  width: 210mm;
-  min-height: 297mm;
-  padding: 25.4mm;
-  margin: 2rem auto;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  border: 1px solid var(--border-color);
-  outline: none;
-}
-
-.ai-pending {
-  color: #9ca3af;
-  font-style: italic;
-  transition: color 0.8s ease, font-style 0.8s ease;
-  opacity: 0.7;
-}
-
-.ai-final {
-  color: #111827;
-  font-style: normal;
-  opacity: 1;
-  transition: color 0.8s ease, font-style 0.8s ease;
-}
-
-/* TipTap Table Basic Styling */
-.ProseMirror table {
-  border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
   margin: 0;
+  padding: 0;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.ProseMirror td, .ProseMirror th {
-  min-width: 1em;
-  border: 2px solid #ced4da;
-  padding: 3px 5px;
-  vertical-align: top;
-  box-sizing: border-box;
-  position: relative;
+/* SuperDoc Custom Container Overrides */
+.superdoc-canvas-wrapper {
+  background-color: var(--color-canvas-bg);
+}
+
+.superdoc-container {
+  background-color: var(--color-sheet-bg);
+}
+
+/* Google Docs style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bdc1c6;
 }
