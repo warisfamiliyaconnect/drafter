@@ -90,16 +90,16 @@ export function FloatingSurgicalPill() {
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-medium shadow-xl hover:bg-indigo-600 transition-all border border-slate-700 animate-in fade-in zoom-in-95 duration-150 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#202124] text-white text-xs font-medium shadow-xl hover:bg-[#1a73e8] transition-all border border-[#3c4043] animate-in fade-in zoom-in-95 duration-150 cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <Sparkles className="w-3.5 h-3.5 text-[#8ab4f8]" />
           <span>AI Rewrite</span>
         </button>
       ) : (
-        <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-3 w-80 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="bg-white rounded-xl shadow-2xl border border-[#dadce0] p-3 w-80 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase flex items-center gap-1">
-              <Wand2 className="w-3 h-3 text-indigo-600" />
+            <span className="text-[11px] font-semibold text-[#5f6368] uppercase flex items-center gap-1">
+              <Wand2 className="w-3 h-3 text-[#1a73e8]" />
               Surgical AI Refinement
             </span>
             <button
@@ -107,7 +107,7 @@ export function FloatingSurgicalPill() {
                 setIsOpen(false)
                 setCoords(null)
               }}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
+              className="p-1 text-[#5f6368] hover:text-[#202124] rounded-md"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -119,7 +119,7 @@ export function FloatingSurgicalPill() {
                 key={preset}
                 disabled={isLoading}
                 onClick={() => handleApplyRewrite(preset)}
-                className="text-[11px] px-2 py-1 rounded-md bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition-colors disabled:opacity-50"
+                className="text-[11px] px-2 py-1 rounded-md bg-[#f1f3f4] hover:bg-[#e8f0fe] hover:text-[#1a73e8] text-[#3c4043] transition-colors disabled:opacity-50"
               >
                 {preset}
               </button>
@@ -133,7 +133,7 @@ export function FloatingSurgicalPill() {
               onChange={(e) => setInstruction(e.target.value)}
               placeholder="Custom rewrite instruction..."
               disabled={isLoading}
-              className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500"
+              className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleApplyRewrite()
               }}
@@ -141,7 +141,7 @@ export function FloatingSurgicalPill() {
             <button
               onClick={() => handleApplyRewrite()}
               disabled={isLoading}
-              className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:bg-slate-300"
+              className="p-1.5 rounded-lg bg-[#1a73e8] text-white hover:bg-[#1765cc] transition-colors disabled:bg-[#dadce0]"
             >
               {isLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

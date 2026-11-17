@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ExecutiveHeader } from './executive-header'
+import { DocumentTitleBar } from './document-title-bar'
+import { MenuBar } from './menu-bar'
 import { FormattingRibbon } from './formatting-ribbon'
 import { SuperDocCanvas } from './superdoc-canvas'
+import { RightSidebarStrip } from './right-sidebar-strip'
 import { DocumentStatusBar } from './document-status-bar'
 import { ColabBottomConsole } from '@/features/ai-assistant/components/colab-bottom-console'
 import { FloatingSurgicalPill } from '@/features/ai-assistant/components/floating-surgical-pill'
@@ -19,7 +21,7 @@ export function EditorWorkspace() {
 
   const handleNewDoc = () => {
     setActiveDocSource('')
-    setDocumentTitle('Untitled Document.docx')
+    setDocumentTitle('Untitled document.docx')
     setStatusMessage('New Blank Document')
   }
 
@@ -62,29 +64,38 @@ export function EditorWorkspace() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100">
-      {/* 1. Executive Top Header */}
-      <ExecutiveHeader
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white">
+      {/* 1. Google Docs Document Title & Identity Bar */}
+      <DocumentTitleBar onImportDoc={handleImportDoc} />
+
+      {/* 2. Menu Bar (File, Edit, View, Insert, Format, Tools... + Mode Switcher) */}
+      <MenuBar
         onNewDoc={handleNewDoc}
         onOpenTemplates={() => setIsTemplateModalOpen(true)}
         onExportDoc={handleExportDoc}
         onImportDoc={handleImportDoc}
       />
 
-      {/* 2. Google Docs Formatting Ribbon */}
+      {/* 3. Google Docs Formatting Ribbon / Toolbar */}
       <FormattingRibbon />
 
-      {/* 3. Full-Width Paginated Canvas Area with Expandable Colab Console */}
-      <div className="flex-1 overflow-hidden relative flex flex-col">
-        <SuperDocCanvas documentSource={activeDocSource} />
-        <FloatingSurgicalPill />
-        <ColabBottomConsole />
+      {/* 4. Main Work Area: Canvas + AI Overlays + Right Icon Strip */}
+      <div className="flex-1 overflow-hidden relative flex flex-row">
+        {/* Document Editing Canvas & AI Overlays */}
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          <SuperDocCanvas documentSource={activeDocSource} />
+          <FloatingSurgicalPill />
+          <ColabBottomConsole />
+        </div>
+
+        {/* Google Workspace Right Tool Strip */}
+        <RightSidebarStrip />
       </div>
 
-      {/* 4. Executive Bottom Status Bar */}
+      {/* 5. Minimal Status Bar */}
       <DocumentStatusBar />
 
-      {/* 5. Starter Templates Modal */}
+      {/* 6. Starter Templates Modal */}
       <TemplateModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}

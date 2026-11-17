@@ -40,25 +40,25 @@ export function TemplateModal({ isOpen, onClose, onSelectTemplate }: TemplateMod
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
       case 'legal':
-        return <FileCode className="w-5 h-5 text-indigo-600" />
+        return <FileCode className="w-5 h-5 text-[#1a73e8]" />
       case 'business':
-        return <Briefcase className="w-5 h-5 text-emerald-600" />
+        return <Briefcase className="w-5 h-5 text-[#1e8e3e]" />
       default:
-        return <FileText className="w-5 h-5 text-slate-600" />
+        return <FileText className="w-5 h-5 text-[#5f6368]" />
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#dadce0] max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-4 border-b border-[#dadce0] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-indigo-600" />
-            <h3 className="font-semibold text-slate-800 text-sm">Choose a Document Starter</h3>
+            <FileText className="w-4 h-4 text-[#1a73e8]" />
+            <h3 className="font-medium text-[#202124] text-sm">Choose a Document Starter</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 rounded-md text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -72,16 +72,16 @@ export function TemplateModal({ isOpen, onClose, onSelectTemplate }: TemplateMod
                 onSelectTemplate(tmpl)
                 onClose()
               }}
-              className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 text-left transition-all group"
+              className="flex items-start gap-3 p-3.5 rounded-lg border border-[#dadce0] hover:border-[#1a73e8] hover:bg-[#f8fafd] text-left transition-all group"
             >
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 group-hover:bg-white group-hover:border-indigo-200 transition-colors">
+              <div className="p-2.5 rounded-lg bg-[#f8f9fa] border border-[#dadce0] group-hover:bg-white group-hover:border-[#1a73e8]/30 transition-colors">
                 {getCategoryIcon(tmpl.category)}
               </div>
               <div>
-                <h4 className="font-medium text-xs text-slate-900 group-hover:text-indigo-600 transition-colors">
+                <h4 className="font-medium text-xs text-[#202124] group-hover:text-[#1a73e8] transition-colors">
                   {tmpl.name}
                 </h4>
-                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                <p className="text-[11px] text-[#5f6368] mt-1 leading-relaxed">
                   {tmpl.description}
                 </p>
               </div>

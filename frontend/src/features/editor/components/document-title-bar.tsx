@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button'
 import { useEditorStore } from '@/store/use-editor-store'
 
 interface DocumentTitleBarProps {
-  onImportDoc: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onImportDoc?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
-export function DocumentTitleBar({ onImportDoc }: DocumentTitleBarProps) {
+export function DocumentTitleBar({ onImportDoc }: DocumentTitleBarProps = {}) {
   const documentTitle = useEditorStore((s) => s.documentTitle)
   const setDocumentTitle = useEditorStore((s) => s.setDocumentTitle)
   const isDrafting = useEditorStore((s) => s.isDrafting)
