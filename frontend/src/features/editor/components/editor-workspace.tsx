@@ -1,17 +1,18 @@
 'use client'
 
 import React, { useState } from 'react'
-import { DocumentTitleBar } from './document-title-bar'
-import { MenuBar } from './menu-bar'
+import { DocumentHeader } from './document-header'
 import { FormattingRibbon } from './formatting-ribbon'
 import { SuperDocCanvas } from './superdoc-canvas'
 import { RightSidebarStrip } from './right-sidebar-strip'
 import { DocumentStatusBar } from './document-status-bar'
 import { ColabBottomConsole } from '@/features/ai-assistant/components/colab-bottom-console'
 import { FloatingSurgicalPill } from '@/features/ai-assistant/components/floating-surgical-pill'
+import { AiSparkleFab } from '@/features/ai-assistant/components/ai-sparkle-fab'
 import { TemplateModal } from './template-modal'
 import { DocumentTemplate } from '@/types/document'
 import { useEditorStore } from '@/store/use-editor-store'
+import { exportDocument } from '@/lib/superdoc-bridge'
 
 export function EditorWorkspace() {
   const [activeDocSource, setActiveDocSource] = useState<string>('')
@@ -42,44 +43,29 @@ export function EditorWorkspace() {
   }
 
   const handleExportDoc = async () => {
-    if (typeof window !== 'undefined' && (window as any).__superdocInstance) {
-      const editor = (window as any).__superdocInstance
-      try {
-        if (typeof editor.exportDocument === 'function') {
-          const blob = await editor.exportDocument({ format: 'docx' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = useEditorStore.getState().documentTitle || 'Drafter_Document.docx'
-          a.click()
-          URL.revokeObjectURL(url)
-          setStatusMessage('Exported .docx successfully')
-          return
-        }
-      } catch (err) {
-        console.error('SuperDoc export error:', err)
-      }
+    const filename = useEditorStore.getState().documentTitle || 'Drafter_Document.docx'
+    const success = await exportDocument(filename)
+    if (success) {
+      setStatusMessage('Exported .docx successfully')
+    } else {
+      setStatusMessage('Export ready')
     }
-    setStatusMessage('Export ready')
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white">
-      {/* 1. Google Docs Document Title & Identity Bar */}
-      <DocumentTitleBar onImportDoc={handleImportDoc} />
-
-      {/* 2. Menu Bar (File, Edit, View, Insert, Format, Tools... + Mode Switcher) */}
-      <MenuBar
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#f0f4f9]">
+      {/* 1. Modern 2026 Unified Document Header (Title + Inline Menus + Share) */}
+      <DocumentHeader
         onNewDoc={handleNewDoc}
         onOpenTemplates={() => setIsTemplateModalOpen(true)}
         onExportDoc={handleExportDoc}
         onImportDoc={handleImportDoc}
       />
 
-      {/* 3. Google Docs Formatting Ribbon / Toolbar */}
+      {/* 2. Floating Pill Formatting Toolbar */}
       <FormattingRibbon />
 
-      {/* 4. Main Work Area: Canvas + AI Overlays + Right Icon Strip */}
+      {/* 3. Main Work Area: Canvas + AI Overlays + Companion Rail */}
       <div className="flex-1 overflow-hidden relative flex flex-row">
         {/* Document Editing Canvas & AI Overlays */}
         <div className="flex-1 overflow-hidden relative flex flex-col">
@@ -88,12 +74,15 @@ export function EditorWorkspace() {
           <ColabBottomConsole />
         </div>
 
-        {/* Google Workspace Right Tool Strip */}
+        {/* Workspace Companion Strip */}
         <RightSidebarStrip />
       </div>
 
-      {/* 5. Minimal Status Bar */}
+      {/* 4. Minimal Borderless Status Bar */}
       <DocumentStatusBar />
+
+      {/* 5. 2026 AI Sparkle Floating Action Button */}
+      <AiSparkleFab />
 
       {/* 6. Starter Templates Modal */}
       <TemplateModal

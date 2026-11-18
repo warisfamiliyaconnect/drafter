@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Bot, Play, CheckCircle2, ChevronRight, Wand2 } from 'lucide-react'
 import { useEditorStore } from '@/store/use-editor-store'
 import { subscribeToAgentStream, approveCurrentSection } from '@/services/agent-service'
+import { insertContentIntoDocument } from '@/lib/superdoc-bridge'
 
 const promptSchema = z.object({
   prompt: z.string().min(3, 'Please describe what you want the agent to draft.'),
@@ -42,18 +43,7 @@ export function AiSidebar() {
         setStatusMessage(`Agent working in ${node}...`)
       },
       onTextChunk: (textChunk) => {
-        // Inject into SuperDoc active session if available
-        if (typeof window !== 'undefined' && (window as any).__superdocInstance) {
-          const editor = (window as any).__superdocInstance
-          try {
-            // Programmatically insert into current paragraph or end of document
-            if (typeof editor.insertContent === 'function') {
-              editor.insertContent(textChunk)
-            }
-          } catch (e) {
-            console.warn('SuperDoc chunk insertion:', e)
-          }
-        }
+        insertContentIntoDocument(textChunk)
       },
       onSectionApproved: (section) => {
         setShowApprovalGate(true)
@@ -62,8 +52,9 @@ export function AiSidebar() {
         setIsDrafting(false)
         setStatusMessage('Draft Completed')
       },
-      onError: (err) => {
-        console.error('Agent stream error:', err)
+      onError: (err: any) => {
+        const errorMsg = err?.message || 'Connection lost to agent backend'
+        console.error('Agent stream error:', errorMsg)
         setIsDrafting(false)
         setStatusMessage('Error drafting')
       },

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Wand2, Check, X, Loader2, Sparkles } from 'lucide-react'
 import { submitSurgicalEdit } from '@/services/agent-service'
 import { useEditorStore } from '@/store/use-editor-store'
+import { insertContentIntoDocument } from '@/lib/superdoc-bridge'
 
 export function FloatingSurgicalPill() {
   const [selectedText, setSelectedText] = useState('')
@@ -42,7 +43,8 @@ export function FloatingSurgicalPill() {
   }, [isOpen])
 
   const handleApplyRewrite = async (customInstruction?: string) => {
-    const promptToUse = customInstruction || instruction || 'Rewrite to be professional, clear, and authoritative'
+    const promptToUse =
+      customInstruction || instruction || 'Rewrite to be professional, clear, and authoritative'
     setIsLoading(true)
     setStatusMessage('Surgically revising text...')
 
@@ -56,16 +58,7 @@ export function FloatingSurgicalPill() {
       })
 
       // Replace in editor instance
-      if (typeof window !== 'undefined' && (window as any).__superdocInstance) {
-        const editor = (window as any).__superdocInstance
-        try {
-          if (typeof editor.insertContent === 'function') {
-            editor.insertContent(result.rewrittenText)
-          }
-        } catch (e) {
-          console.warn('SuperDoc surgical replacement:', e)
-        }
-      }
+      insertContentIntoDocument(result.rewrittenText)
 
       setStatusMessage('Revision proposed in Suggestion Mode')
       setIsOpen(false)
@@ -84,22 +77,22 @@ export function FloatingSurgicalPill() {
 
   return (
     <div
-      className="fixed z-50 transform -translate-x-1/2 pointer-events-auto"
+      className="fixed z-50 transform -translate-x-1/2 pointer-events-auto select-none"
       style={{ left: `${coords.x}px`, top: `${coords.y}px` }}
     >
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#202124] text-white text-xs font-medium shadow-xl hover:bg-[#1a73e8] transition-all border border-[#3c4043] animate-in fade-in zoom-in-95 duration-150 cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full glass-surface text-[#6b21a8] text-xs font-semibold shadow-[0_4px_20px_rgba(168,85,247,0.25)] hover:shadow-[0_6px_24px_rgba(168,85,247,0.35)] hover:scale-105 transition-all border border-purple-200/60 cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-[#8ab4f8]" />
+          <Sparkles className="w-3.5 h-3.5 text-[#a855f7]" />
           <span>AI Rewrite</span>
         </button>
       ) : (
-        <div className="bg-white rounded-xl shadow-2xl border border-[#dadce0] p-3 w-80 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="glass-surface rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.14)] border border-[#e0e2ec] p-3.5 w-84 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-[#5f6368] uppercase flex items-center gap-1">
-              <Wand2 className="w-3 h-3 text-[#1a73e8]" />
+            <span className="text-xs font-semibold text-[#1d1b20] flex items-center gap-1.5">
+              <Wand2 className="w-3.5 h-3.5 text-[#a855f7]" />
               Surgical AI Refinement
             </span>
             <button
@@ -107,7 +100,7 @@ export function FloatingSurgicalPill() {
                 setIsOpen(false)
                 setCoords(null)
               }}
-              className="p-1 text-[#5f6368] hover:text-[#202124] rounded-md"
+              className="p-1 text-[#79747e] hover:text-[#1d1b20] rounded-md transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -119,7 +112,7 @@ export function FloatingSurgicalPill() {
                 key={preset}
                 disabled={isLoading}
                 onClick={() => handleApplyRewrite(preset)}
-                className="text-[11px] px-2 py-1 rounded-md bg-[#f1f3f4] hover:bg-[#e8f0fe] hover:text-[#1a73e8] text-[#3c4043] transition-colors disabled:opacity-50"
+                className="text-xs px-2.5 py-1 rounded-full bg-[#f3e8ff] hover:bg-[#ede9fe] text-[#7c3aed] font-medium transition-colors disabled:opacity-50"
               >
                 {preset}
               </button>
@@ -133,7 +126,7 @@ export function FloatingSurgicalPill() {
               onChange={(e) => setInstruction(e.target.value)}
               placeholder="Custom rewrite instruction..."
               disabled={isLoading}
-              className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-[#dadce0] focus:outline-none focus:border-[#1a73e8]"
+              className="flex-1 text-xs px-3 py-1.5 rounded-xl border border-[#e0e2ec] focus:outline-none focus:ring-2 focus:ring-[#a855f7]/20 focus:border-[#a855f7] bg-white text-[#1d1b20]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleApplyRewrite()
               }}
@@ -141,7 +134,7 @@ export function FloatingSurgicalPill() {
             <button
               onClick={() => handleApplyRewrite()}
               disabled={isLoading}
-              className="p-1.5 rounded-lg bg-[#1a73e8] text-white hover:bg-[#1765cc] transition-colors disabled:bg-[#dadce0]"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#6366f1] text-white hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center shrink-0 cursor-pointer"
             >
               {isLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

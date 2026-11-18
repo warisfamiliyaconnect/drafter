@@ -16,7 +16,7 @@ export function Separator({
     <div
       role="separator"
       className={cn(
-        'bg-[#dadce0] shrink-0',
+        'bg-[#e0e2ec]/60 shrink-0',
         orientation === 'horizontal' ? 'h-px w-full' : 'h-4 w-px',
         className
       )}

@@ -5,22 +5,22 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-  Bot,
+  Sparkles,
   Play,
-  CheckCircle2,
   ChevronUp,
   ChevronDown,
   X,
-  Sparkles,
   Terminal,
   ShieldCheck,
   ArrowRight,
-  GitPullRequest
+  GitPullRequest,
+  CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useEditorStore } from '@/store/use-editor-store'
 import { subscribeToAgentStream, approveCurrentSection } from '@/services/agent-service'
+import { insertContentIntoDocument } from '@/lib/superdoc-bridge'
 
 const promptSchema = z.object({
   prompt: z.string().min(3, 'Please enter a drafting or editing goal.'),
@@ -88,22 +88,16 @@ export function ColabBottomConsole() {
     const unsubscribe = subscribeToAgentStream(values.prompt, {
       onNodeChange: (node) => {
         setStatusMessage(`Agent working in ${node}...`)
-        if (node === 'planner') setActiveStep(1)
+        if (node === 'architect' || node === 'planner') setActiveStep(1)
         if (node === 'drafter') setActiveStep(2)
         if (node === 'critic') setActiveStep(3)
         addReasoningLog(`[Pipeline Node] Activated ${node}`)
       },
       onTextChunk: (textChunk) => {
         addReasoningLog(`[Draft Stream] ${textChunk.slice(0, 80)}...`)
-        if (typeof window !== 'undefined' && (window as any).__superdocInstance) {
-          const editor = (window as any).__superdocInstance
-          try {
-            if (typeof editor.insertContent === 'function') {
-              editor.insertContent(textChunk)
-            }
-          } catch (e) {
-            console.warn('SuperDoc insertion error:', e)
-          }
+        const inserted = insertContentIntoDocument(textChunk)
+        if (inserted) {
+          addReasoningLog(`[Editor] Section content written to canvas.`)
         }
       },
       onSectionApproved: (section) => {
@@ -115,11 +109,12 @@ export function ColabBottomConsole() {
         setStatusMessage('Draft Completed')
         addReasoningLog('[Complete] Document drafting finished.')
       },
-      onError: (err) => {
-        console.error('Agent stream error:', err)
+      onError: (err: any) => {
+        const errorMsg = err?.message || 'Connection lost to agent backend'
+        console.error('Agent stream error:', errorMsg)
         setIsDrafting(false)
         setStatusMessage('Error drafting')
-        addReasoningLog(`[Error] Stream disconnected: ${err}`)
+        addReasoningLog(`[Error] ${errorMsg}`)
       },
     })
   }
@@ -139,51 +134,57 @@ export function ColabBottomConsole() {
 
   if (!isAiConsoleOpen) return null
 
-  const heightClass = consoleHeight === 'expanded' ? 'h-[440px]' : 'h-[280px]'
+  const heightClass = consoleHeight === 'expanded' ? 'h-[420px]' : 'h-[250px]'
 
   const quickTags = [
     'Mutual NDA',
     'Consulting MSA',
     'Add Indemnity Clause',
     'Formal Tone',
-    'Format as Table'
+    'Format as Table',
   ]
 
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 ${heightClass} bg-white border-t border-slate-200 shadow-2xl flex flex-col z-30 transition-all duration-200 select-none animate-in slide-in-from-bottom-6`}
+      className={`absolute bottom-0 left-0 right-0 ${heightClass} glass-surface border-t border-[#e0e2ec] shadow-[0_-8px_32px_rgba(0,0,0,0.08)] flex flex-col z-30 transition-all duration-200 select-none animate-in slide-in-from-bottom-6 rounded-t-2xl overflow-hidden`}
     >
-      {/* Top Console Bar */}
-      <div className="h-9 bg-[#f8f9fa] border-b border-[#dadce0] px-4 flex items-center justify-between">
+      {/* 2026 Frosted Top Bar */}
+      <div className="h-10 bg-white/60 px-5 flex items-center justify-between border-b border-[#e0e2ec]/60">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-[#202124]">
-            <Bot className="w-4 h-4 text-[#1a73e8]" />
-            <span>AI Copilot Console</span>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1d1b20]">
+            <Sparkles className="w-4 h-4 text-[#a855f7]" />
+            <span>AI Copilot Workspace</span>
           </div>
 
-          <div className="h-4 w-px bg-[#dadce0]" />
+          <div className="h-3.5 w-px bg-[#e0e2ec]" />
 
-          {/* Stepper */}
-          <div className="flex items-center gap-2 text-[11px]">
+          {/* Connected Stepper */}
+          <div className="flex items-center gap-1.5 text-xs">
             <span
-              className={`flex items-center gap-1 ${
-                activeStep >= 1 ? 'font-medium text-[#1a73e8]' : 'text-[#80868b]'
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full transition-colors ${
+                activeStep >= 1
+                  ? 'bg-[#f3e8ff] text-[#7c3aed] font-medium'
+                  : 'text-[#79747e]'
               }`}
             >
-              1. Blueprint Plan
+              1. Blueprint
             </span>
-            <span className="text-[#dadce0]">→</span>
+            <span className="text-[#cac4d0]">→</span>
             <span
-              className={`flex items-center gap-1 ${
-                activeStep >= 2 ? 'font-medium text-[#1a73e8]' : 'text-[#80868b]'
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full transition-colors ${
+                activeStep >= 2
+                  ? 'bg-[#f3e8ff] text-[#7c3aed] font-medium'
+                  : 'text-[#79747e]'
               }`}
             >
               2. Live Drafting
             </span>
-            <span className="text-[#dadce0]">→</span>
+            <span className="text-[#cac4d0]">→</span>
             <span
-              className={`flex items-center gap-1 ${
-                activeStep >= 3 ? 'font-medium text-[#1a73e8]' : 'text-[#80868b]'
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-full transition-colors ${
+                activeStep >= 3
+                  ? 'bg-[#f3e8ff] text-[#7c3aed] font-medium'
+                  : 'text-[#79747e]'
               }`}
             >
               3. Legal Critic Audit
@@ -198,7 +199,7 @@ export function ColabBottomConsole() {
               setConsoleHeight(consoleHeight === 'compact' ? 'expanded' : 'compact')
             }
             title={consoleHeight === 'compact' ? 'Expand console' : 'Compact console'}
-            className="p-1 rounded text-[#5f6368] hover:text-[#202124] hover:bg-[#e8eaed] transition-colors"
+            className="p-1 rounded-md text-[#49454f] hover:text-[#1d1b20] hover:bg-[#f0f4f9] transition-colors"
           >
             {consoleHeight === 'compact' ? (
               <ChevronUp className="w-4 h-4" />
@@ -209,46 +210,47 @@ export function ColabBottomConsole() {
           <button
             onClick={() => setIsAiConsoleOpen(false)}
             title="Close console (Ctrl+K)"
-            className="p-1 rounded text-[#5f6368] hover:text-[#202124] hover:bg-[#e8eaed] transition-colors"
+            className="p-1 rounded-md text-[#49454f] hover:text-[#1d1b20] hover:bg-[#f0f4f9] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Search / Prompt Composer Bar (Colab Style) */}
-      <div className="p-3 bg-white border-b border-[#dadce0] flex flex-col gap-2">
+      {/* Modern Conversational Prompt Composer */}
+      <div className="p-3 bg-white/70 border-b border-[#e0e2ec]/60 flex flex-col gap-2">
         <form onSubmit={handleSubmit(onSubmit)} className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
               {...register('prompt')}
               disabled={isDrafting}
-              placeholder="🔍 Describe document to draft or select text for surgical instruction..."
-              className="w-full h-9 pl-3 pr-4 rounded-lg border border-[#dadce0] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/20 focus:border-[#1a73e8] text-xs text-[#202124] disabled:bg-[#f8f9fa] transition-all"
+              placeholder="Describe document to draft or provide surgical editing instructions..."
+              className="w-full h-9 pl-3 pr-4 rounded-xl border border-[#e0e2ec] focus:outline-none focus:ring-2 focus:ring-[#a855f7]/25 focus:border-[#a855f7] text-xs text-[#1d1b20] disabled:bg-[#f0f4f9] transition-all bg-white"
             />
           </div>
 
           <Button
             type="submit"
             disabled={isDrafting}
+            variant="ai"
             size="md"
-            className="gap-1.5 font-medium shrink-0"
+            className="gap-1.5 shrink-0 rounded-xl"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             {isDrafting ? 'Drafting...' : 'Run Copilot'}
           </Button>
         </form>
 
-        {/* Quick Tag Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto text-[11px]">
-          <span className="text-[#5f6368] font-normal">Quick presets:</span>
+        {/* Quick Presets */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+          <span className="text-[#79747e] text-[11px] font-normal">Presets:</span>
           {quickTags.map((tag) => (
             <button
               key={tag}
               type="button"
               disabled={isDrafting}
               onClick={() => setValue('prompt', tag)}
-              className="px-2 py-0.5 rounded-md bg-[#f1f3f4] hover:bg-[#e8f0fe] hover:text-[#1a73e8] text-[#3c4043] border border-[#dadce0] transition-colors disabled:opacity-50"
+              className="px-2.5 py-0.5 rounded-full bg-[#f0f4f9] hover:bg-[#e9eef6] hover:text-[#0b57d0] text-[#49454f] border border-[#e0e2ec]/70 transition-colors disabled:opacity-50 text-[11px]"
             >
               {tag}
             </button>
@@ -256,39 +258,39 @@ export function ColabBottomConsole() {
         </div>
       </div>
 
-      {/* Console Body: Live Stream Log & Approval Gate */}
-      <div className="flex-1 flex overflow-hidden bg-slate-900 text-slate-200">
+      {/* Stream Reasoning Logs & Audit Panel */}
+      <div className="flex-1 flex overflow-hidden bg-[#fafbfc]">
         {/* Terminal Reasoning Stream */}
         <div
           ref={logContainerRef}
-          className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-1 bg-slate-950/70 border-r border-slate-800"
+          className="flex-1 p-3 font-mono text-[11px] leading-relaxed overflow-y-auto space-y-1 bg-[#f8f9fa] border-r border-[#e0e2ec]/60 text-[#3c4043]"
         >
-          <div className="flex items-center gap-1.5 text-slate-500 pb-1 mb-1 border-b border-slate-800/80">
-            <Terminal className="w-3 h-3 text-emerald-400" />
+          <div className="flex items-center gap-1.5 text-[#79747e] pb-1 mb-1 border-b border-[#e0e2ec]/60">
+            <Terminal className="w-3.5 h-3.5 text-[#a855f7]" />
             <span>Agent Reasoning & Token Log</span>
           </div>
 
           {reasoningLogs.map((log, idx) => (
-            <div key={idx} className="text-slate-300">
-              <span className="text-emerald-500 mr-2">›</span>
+            <div key={idx} className="text-[#3c4043]">
+              <span className="text-[#0b57d0] mr-2">›</span>
               {log}
             </div>
           ))}
 
           {isDrafting && (
-            <div className="flex items-center gap-2 text-[#8ab4f8] animate-pulse pt-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#1a73e8]" />
+            <div className="flex items-center gap-2 text-[#7c3aed] font-medium pt-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#a855f7] animate-ping" />
               <span>Streaming agent synthesis...</span>
             </div>
           )}
         </div>
 
-        {/* Right Action / Approval Gate Panel */}
-        <div className="w-80 bg-slate-900 p-4 flex flex-col justify-between">
+        {/* Right Action / Legal Audit Panel */}
+        <div className="w-80 bg-white p-4 flex flex-col justify-between">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#8ab4f8]" />
+              <span className="text-xs font-semibold text-[#1d1b20] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#1e8e3e]" />
                 Critic Audit Status
               </span>
               <Badge variant={showApprovalGate ? 'success' : 'neutral'}>
@@ -297,32 +299,32 @@ export function ColabBottomConsole() {
             </div>
 
             {showApprovalGate ? (
-              <div className="p-3 bg-emerald-950/40 border border-emerald-700/50 rounded-xl flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150">
-                <p className="text-xs text-emerald-300 font-medium">
+              <div className="p-3 bg-[#e6f4ea] border border-[#ceead6] rounded-xl flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-xs text-[#137333] font-medium">
                   The Legal Critic audited this clause. No discrepancies found.
                 </p>
                 <Button
                   onClick={handleApproveGate}
                   variant="default"
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 gap-1.5 w-full mt-1"
+                  className="bg-[#1e8e3e] hover:bg-[#188038] gap-1.5 w-full mt-1 rounded-lg"
                 >
                   Approve & Advance
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             ) : (
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-[#79747e] leading-relaxed">
                 Autonomous agent pipeline is active. Clauses will pause here for manual audit approval when ready.
               </p>
             )}
           </div>
 
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-2 border-t border-[#e0e2ec] flex items-center justify-between text-[11px] text-[#79747e]">
             <span>DOCX Track Changes: Active</span>
             <button
               onClick={() => setMode('suggesting')}
-              className="text-[#8ab4f8] hover:underline flex items-center gap-1"
+              className="text-[#0b57d0] hover:underline flex items-center gap-1 font-medium"
             >
               <GitPullRequest className="w-3 h-3" />
               Suggesting Mode
