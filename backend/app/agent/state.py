@@ -1,10 +1,10 @@
-from typing import TypedDict, List, Dict, Annotated, Optional
+from typing import TypedDict, List, Dict, Annotated, Optional, Literal
 import operator
 
 class SectionStatus(TypedDict):
     title: str
     content: str
-    status: str  # "pending", "drafting", "reviewing", "approved"
+    status: str  # "pending", "drafting", "reviewing", "approved", "awaiting_approval"
     version: int
     critique: Optional[str]
 
@@ -29,3 +29,9 @@ class DocumentGraphState(TypedDict):
 
     # Track current loop iteration for self-correction
     retry_count: int
+
+    # Dual mode support: automatic (continuous) vs manual (approval required)
+    generation_mode: Literal["automatic", "manual"]
+
+    # Holds the latest drafted paragraph for manual staging approval
+    staged_paragraph: Optional[str]

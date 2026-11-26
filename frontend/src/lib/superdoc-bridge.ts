@@ -50,20 +50,28 @@ export function insertContentIntoDocument(
 
   const superdoc = getSuperDoc()
   const editor = getEditor() || superdoc?.activeEditor
+  const docApi = editor?.doc || superdoc?.getDocumentApi?.() || superdoc?.doc
+
+  console.log('[SuperDoc Bridge] insertContentIntoDocument:', {
+    textLength: text.length,
+    hasSuperdoc: !!superdoc,
+    hasEditor: !!editor,
+    hasDocApi: !!docApi,
+  })
 
   // Strategy 1: SuperDoc 2 Document API (Native OOXML document insertion)
-  try {
-    const docApi = superdoc?.getDocumentApi?.() || superdoc?.doc
-    if (docApi && typeof docApi.insert === 'function') {
+  if (docApi && typeof docApi.insert === 'function') {
+    try {
       const contentType = options.type || (text.includes('\n') || text.startsWith('#') ? 'markdown' : 'text')
-      docApi.insert({
+      const receipt = docApi.insert({
         value: text,
         type: contentType,
       })
+      console.log('[SuperDoc Bridge] Strategy 1 (docApi.insert) receipt:', receipt)
       return true
+    } catch (err) {
+      console.warn('[SuperDoc Bridge] docApi.insert error, falling back:', err)
     }
-  } catch (err) {
-    console.warn('[SuperDoc Bridge] DocumentApi.insert error, falling back to editor commands:', err)
   }
 
   // Strategy 2: ProseMirror Editor Commands
@@ -71,27 +79,31 @@ export function insertContentIntoDocument(
     try {
       if (typeof editor.commands?.insertContent === 'function') {
         editor.commands.insertContent(text)
+        console.log('[SuperDoc Bridge] Strategy 2 (commands.insertContent) executed')
         return true
       }
       if (typeof editor.commands?.insertText === 'function') {
         editor.commands.insertText(text)
+        console.log('[SuperDoc Bridge] Strategy 2 (commands.insertText) executed')
         return true
       }
       if (typeof editor.insertText === 'function') {
         editor.insertText(text)
+        console.log('[SuperDoc Bridge] Strategy 2 (editor.insertText) executed')
         return true
       }
       if (editor.view?.dispatch && editor.state?.tr) {
         const tr = editor.state.tr.insertText(text)
         editor.view.dispatch(tr)
+        console.log('[SuperDoc Bridge] Strategy 2 (view.dispatch) executed')
         return true
       }
     } catch (err) {
-      console.warn('[SuperDoc Bridge] Editor command execution error:', err)
+      console.warn('[SuperDoc Bridge] Editor commands error, falling back:', err)
     }
   }
 
-  // Strategy 3: Fallback DOM insertion for immediate visual display in the contenteditable canvas
+  // Strategy 3: Direct contenteditable insertion for immediate visual display
   if (typeof document !== 'undefined') {
     try {
       const editorEl =
@@ -102,13 +114,15 @@ export function insertContentIntoDocument(
         p.className = 'my-2 leading-relaxed'
         p.innerText = text
         editorEl.appendChild(p)
+        console.log('[SuperDoc Bridge] Strategy 3 (DOM append) executed')
         return true
       }
     } catch (err) {
-      console.warn('[SuperDoc Bridge] DOM fallback insertion error:', err)
+      console.warn('[SuperDoc Bridge] DOM fallback error:', err)
     }
   }
 
+  console.warn('[SuperDoc Bridge] All insertion strategies failed')
   return false
 }
 
@@ -146,8 +160,53 @@ export async function exportDocument(filename: string = 'Drafter_Document.docx')
 export function executeCommand(command: string, param?: any): boolean {
   const superdoc = getSuperDoc()
   const editor = getEditor() || superdoc?.activeEditor
+  const docApi = editor?.doc || superdoc?.getDocumentApi?.() || superdoc?.doc
 
-  // Strategy 1: superdoc.ui.commands
+  // Strategy 1: SuperDoc 2 Document API
+  if (docApi) {
+    try {
+      if (command === 'undo' && docApi.history?.undo) {
+        docApi.history.undo()
+        return true
+      }
+      if (command === 'redo' && docApi.history?.redo) {
+        docApi.history.redo()
+        return true
+      }
+      if (command === 'bold' && docApi.format?.bold) {
+        docApi.format.bold({})
+        return true
+      }
+      if (command === 'italic' && docApi.format?.italic) {
+        docApi.format.italic({})
+        return true
+      }
+      if (command === 'underline' && docApi.format?.underline) {
+        docApi.format.underline({})
+        return true
+      }
+      if (command === 'strikethrough' && docApi.format?.strikethrough) {
+        docApi.format.strikethrough({})
+        return true
+      }
+      if (command === 'fontSize' && docApi.format?.apply) {
+        docApi.format.apply({ inline: { fontSize: `${param}pt` } })
+        return true
+      }
+      if (command === 'fontFamily' && docApi.format?.apply) {
+        docApi.format.apply({ inline: { fontFamily: param } })
+        return true
+      }
+      if (command === 'align' && docApi.paragraphs?.setAlignment) {
+        docApi.paragraphs.setAlignment({ alignment: param })
+        return true
+      }
+    } catch (err) {
+      console.warn('[SuperDoc Bridge] docApi executeCommand error:', err)
+    }
+  }
+
+  // Strategy 2: superdoc.ui.commands
   if (superdoc?.ui?.commands) {
     try {
       const cmd = superdoc.ui.commands.get(command)
@@ -158,7 +217,7 @@ export function executeCommand(command: string, param?: any): boolean {
     } catch (err) {}
   }
 
-  // Strategy 2: editor.commands
+  // Strategy 3: editor.commands
   if (editor?.commands) {
     try {
       if (typeof editor.commands[command] === 'function') {

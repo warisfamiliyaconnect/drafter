@@ -2,6 +2,7 @@
 
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { BlankDOCX } from 'superdoc'
 import { superdocFonts } from '@superdoc-dev/fonts'
 import { useEditorStore } from '@/store/use-editor-store'
 import { setSuperDoc, setSuperDocEditor } from '@/lib/superdoc-bridge'
@@ -28,14 +29,16 @@ interface SuperDocCanvasProps {
 
 export function SuperDocCanvas({ documentSource }: SuperDocCanvasProps) {
   const mode = useEditorStore((s) => s.mode)
-  // Ensure SuperDoc always receives a valid document substrate
-  const activeDocument = documentSource || '/templates/blank.docx'
+  // Use BlankDOCX data URL so SuperDoc loads synchronously in-memory
+  const activeDocument = documentSource || BlankDOCX
 
   const handleReady = (event: any) => {
+    console.log('[SuperDoc Canvas] Ready:', event)
     setSuperDoc(event)
   }
 
   const handleEditorCreate = (event: any) => {
+    console.log('[SuperDoc Canvas] Editor created:', event)
     setSuperDocEditor(event)
   }
 
@@ -46,6 +49,7 @@ export function SuperDocCanvas({ documentSource }: SuperDocCanvasProps) {
           document={activeDocument}
           fonts={superdocFonts}
           documentMode={mode}
+          hideToolbar={true}
           onReady={handleReady}
           onEditorCreate={handleEditorCreate}
           style={{ width: '100%', minHeight: '1120px' }}

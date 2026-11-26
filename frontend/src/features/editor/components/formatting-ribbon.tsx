@@ -96,7 +96,7 @@ export function FormattingRibbon() {
   const Sep = () => <div className="w-px h-4 bg-[#e0e2ec] mx-1 shrink-0" />
 
   return (
-    <div className="w-full flex justify-center py-2 px-4 z-20 pointer-events-none select-none">
+    <div className="w-full flex justify-start py-2 px-4 z-20 pointer-events-none select-none">
       {/* 2026 Material 3 Floating Pill Toolbar */}
       <div className="pointer-events-auto bg-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.08),0_0_1px_rgba(0,0,0,0.12)] border border-[#e0e2ec]/60 px-3 h-10 flex items-center gap-0.5 overflow-x-auto max-w-full">
         {/* Undo / Redo */}

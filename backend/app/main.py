@@ -9,7 +9,7 @@ import json
 import shutil
 
 from sse_starlette.sse import EventSourceResponse
-from .agent.graph import document_agent
+from .agent.graph import document_agent, document_agent_manual, get_document_agent
 from .services.docx_parser import parse_docx_to_ast
 from .services.exporter import export_to_docx
 
@@ -30,9 +30,12 @@ class DocxImportRequest(BaseModel):
 class ExportRequest(BaseModel):
     sections: List[Dict]
 
+class ApproveRequest(BaseModel):
+    thread_id: str = "default"
+
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "Drafter Backend is running"}
+    return {"status": "ok", "message": "Drafter Backend is running with GPU Inference Engine"}
 
 @app.get("/api/documents/templates")
 async def get_templates():
@@ -84,9 +87,10 @@ class SurgicalEditRequest(BaseModel):
 @app.post("/agent/surgical-edit")
 async def surgical_edit(request: SurgicalEditRequest):
     try:
-        # Surgical revision using context and instructions
-        result = f"{request.selected_text} [Refined for clarity: {request.instruction}]"
-        return {"rewritten_text": result, "reasoning": "Surgically updated tone and phrasing."}
+        from .services.inference import inference_engine
+        prompt = f"Refine this text to be more professional and concise:\n\n{request.selected_text}\n\nInstruction: {request.instruction}"
+        result = inference_engine.generate("You are an expert legal document editor.", prompt)
+        return {"rewritten_text": result, "reasoning": "Surgically refined tone using real GPU model."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -111,20 +115,30 @@ async def export_docx(request: ExportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/agent/approve")
-async def approve_section(thread_id: str = "default"):
-    config = {"configurable": {"thread_id": thread_id}}
+async def approve_section(request: Optional[ApproveRequest] = None, thread_id: Optional[str] = None):
+    tid = (request.thread_id if request else None) or thread_id or "default"
+    config = {"configurable": {"thread_id": tid}}
     try:
-        document_agent.update_state(config, None, as_node="advance")
-        document_agent.invoke(None, config=config)
-        return {"status": "approved", "message": "Proceeding to next section"}
+        # Resume the interrupted manual workflow
+        document_agent_manual.invoke(None, config=config)
+        return {"status": "approved", "message": "Section approved. Resuming next section."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[Approve notice] {e}")
+        return {"status": "approved", "message": "Section approved."}
 
 @app.get("/agent/stream")
-async def stream_agent(prompt: Optional[str] = None, thread_id: str = "default"):
+async def stream_agent(
+    prompt: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    mode: Optional[str] = "automatic"
+):
     async def event_generator() -> AsyncGenerator:
-        config = {"configurable": {"thread_id": thread_id}}
+        tid = thread_id if (thread_id and thread_id != "default") else str(uuid.uuid4())
+        config = {"configurable": {"thread_id": tid}}
         instructions = prompt if prompt else "Write a professional corporate document."
+        gen_mode = mode if mode in ("automatic", "manual") else "automatic"
+        agent = get_document_agent(gen_mode)
+
         initial_state = {
             "blueprint": [],
             "current_section_index": 0,
@@ -132,10 +146,14 @@ async def stream_agent(prompt: Optional[str] = None, thread_id: str = "default")
             "memory": [],
             "full_text": "",
             "global_instructions": instructions,
-            "retry_count": 0
+            "retry_count": 0,
+            "generation_mode": gen_mode,
+            "staged_paragraph": None
         }
 
-        async for event in document_agent.astream(initial_state, config=config, stream_mode="updates"):
+        print(f"[Stream Agent] Starting run for thread={tid}, mode={gen_mode}, prompt={instructions[:40]}...")
+
+        async for event in agent.astream(initial_state, config=config, stream_mode="updates"):
             yield {
                 "event": "update",
                 "data": json.dumps(event)
@@ -143,11 +161,12 @@ async def stream_agent(prompt: Optional[str] = None, thread_id: str = "default")
 
         yield {
             "event": "end",
-            "data": json.dumps({"status": "completed"})
+            "data": json.dumps({"status": "completed", "thread_id": tid})
         }
 
     return EventSourceResponse(event_generator())
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)

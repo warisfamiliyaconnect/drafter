@@ -2,11 +2,19 @@ import { create } from 'zustand'
 
 export type DocumentMode = 'editing' | 'suggesting' | 'viewing'
 export type ConsoleHeight = 'compact' | 'expanded'
+export type GenerationMode = 'automatic' | 'manual'
 
 export interface TextSelection {
   from: number
   to: number
   text: string
+}
+
+export interface StagedParagraph {
+  title: string
+  content: string
+  critique?: string
+  threadId: string
 }
 
 interface EditorUIState {
@@ -22,6 +30,11 @@ interface EditorUIState {
   showApprovalGate: boolean
   activeStep: 1 | 2 | 3 // 1: Blueprint Plan, 2: Live Drafting, 3: Critic Audit
   reasoningLogs: string[]
+
+  // Dual-mode drafting
+  generationMode: GenerationMode
+  stagedParagraph: StagedParagraph | null
+  currentThreadId: string | null
 
   // Colab Console UI State
   isAiConsoleOpen: boolean
@@ -42,6 +55,11 @@ interface EditorUIState {
   setActiveStep: (step: 1 | 2 | 3) => void
   addReasoningLog: (log: string) => void
   clearReasoningLogs: () => void
+
+  setGenerationMode: (mode: GenerationMode) => void
+  setStagedParagraph: (p: StagedParagraph | null) => void
+  clearStagedParagraph: () => void
+  setCurrentThreadId: (id: string | null) => void
 
   setIsAiConsoleOpen: (open: boolean) => void
   toggleAiConsole: () => void
@@ -65,6 +83,10 @@ export const useEditorStore = create<EditorUIState>((set) => ({
     'Ready to draft or edit with Colab AI Copilot.',
   ],
 
+  generationMode: 'automatic',
+  stagedParagraph: null,
+  currentThreadId: null,
+
   isAiConsoleOpen: false,
   consoleHeight: 'compact',
   selection: null,
@@ -81,6 +103,11 @@ export const useEditorStore = create<EditorUIState>((set) => ({
   addReasoningLog: (log) =>
     set((state) => ({ reasoningLogs: [...state.reasoningLogs.slice(-49), log] })),
   clearReasoningLogs: () => set({ reasoningLogs: [] }),
+
+  setGenerationMode: (generationMode) => set({ generationMode }),
+  setStagedParagraph: (stagedParagraph) => set({ stagedParagraph }),
+  clearStagedParagraph: () => set({ stagedParagraph: null }),
+  setCurrentThreadId: (currentThreadId) => set({ currentThreadId }),
 
   setIsAiConsoleOpen: (isAiConsoleOpen) => set({ isAiConsoleOpen }),
   toggleAiConsole: () =>

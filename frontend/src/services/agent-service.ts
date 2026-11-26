@@ -1,32 +1,76 @@
 import { SurgicalEditRequest, SurgicalEditResponse } from '@/types/agent'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
 export interface AgentStreamHandlers {
   onNodeChange?: (nodeName: string) => void
   onTextChunk?: (chunk: string) => void
   onSectionApproved?: (section: any) => void
+  onPendingApproval?: (paragraph: string) => void
   onComplete?: () => void
   onError?: (err: any) => void
 }
 
-export function subscribeToAgentStream(prompt: string = '', handlers: AgentStreamHandlers): () => void {
-  const queryParam = prompt ? `?prompt=${encodeURIComponent(prompt)}` : ''
-  const eventSource = new EventSource(`${API_BASE_URL}/agent/stream${queryParam}`)
+export interface AgentStreamOptions {
+  mode?: 'automatic' | 'manual'
+  threadId?: string
+}
+
+export function subscribeToAgentStream(
+  prompt: string = '',
+  handlers: AgentStreamHandlers,
+  options?: AgentStreamOptions
+): () => void {
+  const mode = options?.mode ?? 'automatic'
+  const threadId = options?.threadId ?? ''
+
+  const params = new URLSearchParams()
+  if (prompt) params.set('prompt', prompt)
+  params.set('mode', mode)
+  if (threadId) params.set('thread_id', threadId)
+
+  const url = `${API_BASE_URL}/agent/stream?${params.toString()}`
+  const eventSource = new EventSource(url)
   let isClosed = false
 
   const processUpdateData = (rawData: any) => {
     try {
       const update = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
       const nodeName = Object.keys(update)[0]
-      if (!nodeName || nodeName === '__interrupt__') return
+      if (!nodeName) return
 
       const stateUpdate = update[nodeName]
       handlers.onNodeChange?.(nodeName)
 
+      // Manual mode: detect interrupt / staged paragraph
+      if (nodeName === '__interrupt__' || (stateUpdate && stateUpdate.staged_paragraph)) {
+        const staged =
+          stateUpdate?.staged_paragraph ||
+          (Array.isArray(stateUpdate) ? stateUpdate[0]?.value : null)
+        if (staged && handlers.onPendingApproval) {
+          handlers.onPendingApproval(staged)
+        }
+        return
+      }
+
+      // Prefer staged_paragraph for text insertion (clean per-section content)
+      if (stateUpdate?.staged_paragraph) {
+        if (mode === 'automatic') {
+          handlers.onTextChunk?.(stateUpdate.staged_paragraph)
+        } else {
+          // Manual mode: surface for approval
+          handlers.onPendingApproval?.(stateUpdate.staged_paragraph)
+        }
+        return
+      }
+
+      // Fallback: stream text chunk from full_text accumulator
       if (stateUpdate?.full_text) {
         const parts = stateUpdate.full_text.split('\n\n')
-        handlers.onTextChunk?.(parts[parts.length - 1])
+        const lastChunk = parts[parts.length - 1]
+        if (lastChunk?.trim()) {
+          handlers.onTextChunk?.(lastChunk)
+        }
       }
 
       if (nodeName === 'critic' && stateUpdate?.blueprint) {
@@ -76,8 +120,6 @@ export function subscribeToAgentStream(prompt: string = '', handlers: AgentStrea
   eventSource.onerror = (err) => {
     if (isClosed) return
 
-    // If the server closed the connection after sending all events,
-    // readyState will become CLOSED or CONNECTING without active failure.
     if (eventSource.readyState === EventSource.CLOSED) {
       isClosed = true
       eventSource.close()
@@ -85,7 +127,6 @@ export function subscribeToAgentStream(prompt: string = '', handlers: AgentStrea
       return
     }
 
-    // Actual error occurred before stream completed
     isClosed = true
     eventSource.close()
     const errorDetails = new Error('Failed to connect to agent stream at ' + API_BASE_URL)
@@ -121,9 +162,11 @@ export async function submitSurgicalEdit(req: SurgicalEditRequest): Promise<Surg
   }
 }
 
-export async function approveCurrentSection(): Promise<boolean> {
+export async function approveCurrentSection(threadId: string = 'default'): Promise<boolean> {
   const response = await fetch(`${API_BASE_URL}/agent/approve`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ thread_id: threadId }),
   })
   return response.ok
 }

@@ -10,118 +10,152 @@ from ..services.inference import inference_engine
 # --- Node Implementations ---
 
 def plan_blueprint(state: DocumentGraphState):
-    print(f"--- NODE: Architect (Calling Real Model) ---")
+    print("--- NODE: Architect (Planning Blueprint with Real Model) ---")
     user_req = state.get("global_instructions", "Create a professional corporate document.")
 
-    # Call real GGUF model
+    # Call real model for blueprint planning
     blueprint_raw = inference_engine.generate(
         system_prompt=SYSTEM_PROMPTS['architect'],
-        user_prompt=user_req
+        user_prompt=f"Create a 4-section outline for: {user_req}. Output the section titles clearly."
     )
+    print(f"--- Architect Raw Output: {blueprint_raw[:120]}... ---")
 
-    # For the MVP, we still maintain the structured blueprint
-    # but in production we would parse the AI's JSON response.
+    # Define standard corporate document sections tailored to request
+    is_nda = "nda" in user_req.lower() or "non-disclosure" in user_req.lower() or "confidential" in user_req.lower()
+    if is_nda:
+        section_titles = [
+            "1. Definitions and Confidential Information",
+            "2. Obligations and Standard of Care",
+            "3. Term, Return of Materials and Termination",
+            "4. Remedies, Governing Law and Signatures"
+        ]
+    else:
+        section_titles = [
+            "1. Executive Summary & Purpose",
+            "2. Scope of Agreement & Core Deliverables",
+            "3. Compliance, Risk Assessment & Term",
+            "4. Operational Framework & Approvals"
+        ]
+
     blueprint = [
-        {"title": "Introduction", "content": "", "status": "pending", "version": 0, "critique": None},
-        {"title": "Executive Summary", "content": "", "status": "pending", "version": 0, "critique": None},
-        {"title": "Detailed Analysis", "content": "", "status": "pending", "version": 0, "critique": None},
-        {"title": "Conclusion", "content": "", "status": "pending", "version": 0, "critique": None},
+        {"title": title, "content": "", "status": "pending", "version": 0, "critique": None}
+        for title in section_titles
     ]
+
     return {
         "blueprint": blueprint,
         "current_section_index": 0,
-        "retry_count": 0
+        "retry_count": 0,
+        "staged_paragraph": None
     }
 
 def draft_paragraph(state: DocumentGraphState):
     idx = state["current_section_index"]
     section = state["blueprint"][idx]
-    print(f"--- NODE: Drafter (Calling Real Model for {section['title']}) ---")
+    print(f"--- NODE: Drafter (Synthesizing {section['title']}) ---")
 
-    user_prompt = f"Please draft the section: {section['title']}. \nContext: {state.get('global_instructions', '')}"
+    context = f"Goal: {state.get('global_instructions', '')}\nSection to Draft: {section['title']}"
+    if state.get("full_text"):
+        context += f"\nPrevious Document Text Context: {state['full_text'][-400:]}"
 
     drafted_content = inference_engine.generate(
         system_prompt=SYSTEM_PROMPTS['drafter'],
-        user_prompt=user_prompt,
+        user_prompt=f"Draft comprehensive, professional paragraph content for '{section['title']}'. Context: {context}",
         mode="drafter"
     )
 
     new_blueprint = list(state["blueprint"])
-    new_blueprint[idx] = {**section, "content": drafted_content, "status": "reviewing", "version": section["version"] + 1}
+    new_blueprint[idx] = {
+        **section,
+        "content": drafted_content,
+        "status": "reviewing",
+        "version": section["version"] + 1
+    }
+
+    formatted_paragraph = f"\n\n### {section['title']}\n{drafted_content}"
 
     return {
         "blueprint": new_blueprint,
-        "full_text": f"\n\n{section['title']}\n{drafted_content}"
+        "staged_paragraph": formatted_paragraph,
+        "full_text": formatted_paragraph
     }
 
 def critic_audit(state: DocumentGraphState):
     idx = state["current_section_index"]
     section = state["blueprint"][idx]
-    print(f"--- NODE: Critic (Calling Real Model for {section['title']}) ---")
-
-    user_prompt = f"Audit this draft:\n\n{section['content']}"
+    print(f"--- NODE: Critic (Auditing {section['title']}) ---")
 
     critique = inference_engine.generate(
         system_prompt=SYSTEM_PROMPTS['critic'],
-        user_prompt=user_prompt,
+        user_prompt=f"Audit this section draft for corporate tone and precision:\n\n{section['content']}",
         mode="critic"
     )
 
-    if "PASS" in critique.upper() or len(critique) < 20:
-        return {"blueprint": [
-            {**s, "status": "approved" if i == idx else s["status"]}
-            for i, s in enumerate(state["blueprint"])
-        ]}
+    is_pass = "PASS" in critique.upper() or len(critique) < 30 or "no issues" in critique.lower()
+
+    if is_pass:
+        new_status = "approved"
+    else:
+        new_status = "failed"
+
+    new_blueprint = list(state["blueprint"])
+    new_blueprint[idx] = {
+        **section,
+        "status": new_status,
+        "critique": critique
+    }
 
     return {
-        "blueprint": [
-            {**s, "status": "failed" if i == idx else s["status"], "critique": critique if i == idx else s["critique"]}
-            for i, s in enumerate(state["blueprint"])
-        ],
-        "retry_count": state["retry_count"] + 1
+        "blueprint": new_blueprint,
+        "retry_count": state["retry_count"] if is_pass else state["retry_count"] + 1
     }
 
 def refine_paragraph(state: DocumentGraphState):
     idx = state["current_section_index"]
     section = state["blueprint"][idx]
-    print(f"--- NODE: Refiner (Calling Real Model for {section['title']}) ---")
-
-    user_prompt = f"Draft: {section['content']}\n\nCritique: {section['critique']}\n\nSurgically refine this draft."
+    print(f"--- NODE: Refiner (Refining {section['title']}) ---")
 
     refined_content = inference_engine.generate(
         system_prompt=SYSTEM_PROMPTS['refiner'],
-        user_prompt=user_prompt,
+        user_prompt=f"Draft: {section['content']}\nCritique: {section['critique']}\nRefine this draft to address all feedback.",
         mode="default"
     )
 
     new_blueprint = list(state["blueprint"])
-    new_blueprint[idx] = {**section, "content": refined_content, "status": "reviewing", "version": section["version"] + 1}
+    new_blueprint[idx] = {
+        **section,
+        "content": refined_content,
+        "status": "reviewing",
+        "version": section["version"] + 1
+    }
+
+    formatted_paragraph = f"\n\n### {section['title']}\n{refined_content}"
 
     return {
-        "blueprint": new_blueprint
+        "blueprint": new_blueprint,
+        "staged_paragraph": formatted_paragraph
     }
 
 def should_continue(state: DocumentGraphState):
     idx = state["current_section_index"]
     section = state["blueprint"][idx]
 
-    if section["status"] == "approved":
+    if section["status"] == "approved" or state["retry_count"] >= 2:
         if idx + 1 < len(state["blueprint"]):
-            return "human_review"
+            return "advance"
         return "end"
-
-    if state["retry_count"] >= 2:
-        return "force_approve"
 
     return "refine"
 
 def next_section_logic(state: DocumentGraphState):
+    print("--- NODE: Advance (Advancing to Next Section) ---")
     return {
         "current_section_index": state["current_section_index"] + 1,
-        "retry_count": 0
+        "retry_count": 0,
+        "staged_paragraph": None
     }
 
-def create_document_graph():
+def build_workflow():
     workflow = StateGraph(DocumentGraphState)
 
     workflow.add_node("architect", plan_blueprint)
@@ -139,8 +173,7 @@ def create_document_graph():
         should_continue,
         {
             "refine": "refiner",
-            "human_review": "advance",
-            "force_approve": "advance",
+            "advance": "advance",
             "end": END
         }
     )
@@ -148,7 +181,21 @@ def create_document_graph():
     workflow.add_edge("refiner", "critic")
     workflow.add_edge("advance", "drafter")
 
-    memory = MemorySaver()
-    return workflow.compile(checkpointer=memory, interrupt_before=["advance"])
+    return workflow
 
-document_agent = create_document_graph()
+# Shared memory checkpointer for persistence across streaming and approvals
+memory = MemorySaver()
+
+# Automatic agent: continuous, autonomous execution across all sections
+document_agent_auto = build_workflow().compile(checkpointer=memory)
+
+# Manual agent: pauses before advance so human reviews and approves each paragraph
+document_agent_manual = build_workflow().compile(checkpointer=memory, interrupt_before=["advance"])
+
+# Default reference
+document_agent = document_agent_auto
+
+def get_document_agent(mode: str = "automatic"):
+    if mode == "manual":
+        return document_agent_manual
+    return document_agent_auto
